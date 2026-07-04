@@ -1,0 +1,35 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/server
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment files (важно!)
+.env
+.env.local
+.env.*.local
+
+# Docs generated (если ещё нет)
+docs/
+
+# OS files
+.DS_Store
+Thumbs.db
