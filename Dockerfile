@@ -1,9 +1,11 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
+# Добавляем строку ниже
+RUN go mod tidy
 RUN go build -o /app/server ./cmd/server
 
 # Run stage

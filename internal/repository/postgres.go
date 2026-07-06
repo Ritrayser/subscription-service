@@ -73,7 +73,10 @@ func (r *Repository) List(ctx context.Context, limit, offset int, userID *uuid.U
 }
 
 func (r *Repository) SumByPeriod(ctx context.Context, start, end time.Time, userID *uuid.UUID, serviceName *string) (int, error) {
-	query := `SELECT COALESCE(SUM(price), 0) FROM subscriptions
+	query := `SELECT COALESCE(SUM(price * (1 +
+              EXTRACT(YEAR FROM LEAST(COALESCE(end_date, $1), $1)) * 12 + EXTRACT(MONTH FROM LEAST(COALESCE(end_date, $1), $1))
+              - EXTRACT(YEAR FROM GREATEST(start_date, $2)) * 12 - EXTRACT(MONTH FROM GREATEST(start_date, $2))
+            )), 0) FROM subscriptions
               WHERE start_date <= $1 AND (end_date IS NULL OR end_date >= $2)`
 	args := []interface{}{end, start}
 	argIdx := 3

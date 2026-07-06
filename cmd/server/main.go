@@ -1,3 +1,8 @@
+// @Title Subscription Service API
+// @Description REST API for managing user subscriptions
+// @Version 1.0
+// @Host localhost:8080
+// @BasePath /
 package main
 
 import (
@@ -12,7 +17,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmoiron/sqlx"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"subscription-service/internal/config"
@@ -20,38 +24,31 @@ import (
 	"subscription-service/internal/repository"
 	"subscription-service/internal/service"
 
-	_ "subscription-service/docs" // swagger docs
+	_ "github.com/jackc/pgx/v5/stdlib" // драйвер pgx для sqlx
+	_ "subscription-service/docs"      // swagger docs
 )
 
-// @title Subscription Service API
-// @version 1.0
-// @description REST API for managing user subscriptions
-// @host localhost:8080
-// @BasePath /
 func main() {
-
+	
 	cfg := config.Load()
 
+	
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
 	slog.SetDefault(logger)
 
+	
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-
 		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode)
 
-	pool, err := pgxpool.New(context.Background(), dbURL)
-
+	db, err := sqlx.Connect("pgx", dbURL)
 	if err != nil {
 		logger.Error("Failed to connect to DB", "error", err)
 		os.Exit(1)
 	}
-	defer pool.Close()
-
-	db := sqlx.NewDb(pool, "pgx")
+	defer db.Close()
 
 	repo := repository.NewRepository(db)
-	
+
 	svc := service.NewSubscriptionService(repo)
 
 	subHandler := handlers.NewSubscriptionHandler(svc, logger)
@@ -61,10 +58,15 @@ func main() {
 	r.Use(middleware.Logger)
 
 	r.Use(middleware.Recoverer)
-	
+
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
+	r.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/swagger/", http.StatusMovedPermanently)
+	})
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
 
 	r.Route("/subscriptions", func(r chi.Router) {
 		r.Post("/", subHandler.Create)

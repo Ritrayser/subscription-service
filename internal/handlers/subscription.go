@@ -20,6 +20,15 @@ func NewSubscriptionHandler(svc *service.SubscriptionService, log *slog.Logger) 
 	return &SubscriptionHandler{svc: svc, log: log}
 }
 
+// @Summary Create a new subscription
+// @Description Create a new subscription record
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscription body models.CreateSubscriptionInput true "Subscription data"
+// @Success 201 {object} models.Subscription
+// @Failure 400 {string} string "Invalid request body or validation error"
+// @Router /subscriptions [post]
 func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input models.CreateSubscriptionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -38,6 +47,15 @@ func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sub)
 }
 
+// @Summary Get a subscription by ID
+// @Description Get a single subscription record by its UUID
+// @Tags subscriptions
+// @Produce json
+// @Param id path string true "Subscription UUID"
+// @Success 200 {object} models.Subscription
+// @Failure 400 {string} string "Invalid ID format"
+// @Failure 404 {string} string "Subscription not found"
+// @Router /subscriptions/{id} [get]
 func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	sub, err := h.svc.Get(r.Context(), id)
@@ -53,6 +71,17 @@ func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sub)
 }
 
+// @Summary Update a subscription
+// @Description Update an existing subscription record
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription UUID"
+// @Param subscription body models.UpdateSubscriptionInput true "Updated subscription data"
+// @Success 200 {object} models.Subscription
+// @Failure 400 {string} string "Invalid request or validation error"
+// @Failure 404 {string} string "Subscription not found"
+// @Router /subscriptions/{id} [put]
 func (h *SubscriptionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var input models.UpdateSubscriptionInput
@@ -74,6 +103,13 @@ func (h *SubscriptionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(sub)
 }
 
+// @Summary Delete a subscription
+// @Description Delete a subscription record by its UUID
+// @Tags subscriptions
+// @Param id path string true "Subscription UUID"
+// @Success 204 "No Content"
+// @Failure 400 {string} string "Invalid ID format"
+// @Router /subscriptions/{id} [delete]
 func (h *SubscriptionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	err := h.svc.Delete(r.Context(), id)
@@ -85,6 +121,17 @@ func (h *SubscriptionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// @Summary List subscriptions
+// @Description Get a paginated list of subscriptions with optional filtering
+// @Tags subscriptions
+// @Produce json
+// @Param limit query int false "Page limit (default 20)"
+// @Param offset query int false "Page offset (default 0)"
+// @Param user_id query string false "Filter by user UUID"
+// @Param service_name query string false "Filter by service name"
+// @Success 200 {array} models.Subscription
+// @Failure 400 {string} string "Invalid query parameters"
+// @Router /subscriptions [get]
 func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	if limit <= 0 {
@@ -115,6 +162,17 @@ func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(subs)
 }
 
+// @Summary Calculate total subscription cost for a period
+// @Description Calculate the total cost of all active subscriptions in the given month range, with optional user and service filters
+// @Tags subscriptions
+// @Produce json
+// @Param start query string true "Period start (MM-YYYY)"
+// @Param end query string true "Period end (MM-YYYY)"
+// @Param user_id query string false "Filter by user UUID"
+// @Param service_name query string false "Filter by service name"
+// @Success 200 {object} map[string]int
+// @Failure 400 {string} string "Invalid parameters"
+// @Router /subscriptions/total [get]
 func (h *SubscriptionHandler) SumByPeriod(w http.ResponseWriter, r *http.Request) {
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
